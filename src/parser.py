@@ -1,50 +1,3 @@
-# import pdfplumber
-# import re
-
-
-# def extract_text_from_pdf(pdf_file):
-#     text = ""
-#     try:
-#         with pdfplumber.open(pdf_file) as pdf:
-#             for page in pdf.pages:
-#                 page_text = page.extract_text(x_tolerance=3, y_tolerance=3)
-#                 if page_text:
-#                     text += page_text + "\n"
-#                 else:
-#                     words = page.extract_words(
-#                         x_tolerance=3,
-#                         y_tolerance=3,
-#                         keep_blank_chars=False
-#                     )
-#                     if words:
-#                         words.sort(key=lambda w: (round(w['top'] / 10), w['x0']))
-#                         line_text = ""
-#                         last_top = -1
-#                         for word in words:
-#                             current_top = round(word['top'] / 10)
-#                             if current_top != last_top and last_top != -1:
-#                                 text += line_text.strip() + "\n"
-#                                 line_text = word['text'] + " "
-#                             else:
-#                                 line_text += word['text'] + " "
-#                             last_top = current_top
-#                         text += line_text.strip() + "\n"
-#     except Exception as e:
-#         print(f"Error reading PDF: {e}")
-#         return ""
-#     return clean_text(text)
-
-
-# def clean_text(text):
-#     text = re.sub(r'\s+', ' ', text)
-#     text = re.sub(r'[^\x00-\x7F]+', ' ', text)
-#     text = text.strip()
-#     return text
-
-
-# def extract_text_from_string(text):
-#     return clean_text(text)
-
 import pdfplumber
 import re
 
@@ -118,19 +71,8 @@ def _extract_page_text(page):
         pass
 
     return standard_text or ""
-
-
-# def clean_text(text):
-#     # FIX: only collapse whitespace and remove truly unprintable control chars
-#     # Do NOT strip non-ASCII broadly — it removes valid skill names and bullet symbols
-#     text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', ' ', text)  # control chars only
-#     text = re.sub(r'[ \t]+', ' ', text)       # collapse horizontal whitespace
-#     text = re.sub(r'\n{3,}', '\n\n', text)    # collapse excessive blank lines
-#     text = text.strip()
-#     return text
-
 def clean_text(text):
-    text = re.sub(r'\(cid:\d+\)', ' ', text)  # ← this line must be first
+    text = re.sub(r'\(cid:\d+\)', ' ', text)
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'[^\x00-\x7F]+', ' ', text)
     text = text.strip()
