@@ -4,8 +4,7 @@ import smtplib
 import streamlit as st
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from src.database import get_user_by_email
-from src.database import get_connection
+from src.database import get_user_by_email, get_connection
 
 
 def verify_password(plain_password, hashed_password):
@@ -43,6 +42,11 @@ def get_current_user():
     return st.session_state.get('user', None)
 
 
+def is_admin():
+    user = get_current_user()
+    return user and user.get('role') == 'admin'
+
+
 def generate_otp():
     return str(random.randint(100000, 999999))
 
@@ -52,7 +56,7 @@ def send_otp_email(receiver_email, otp):
         sender_email = "your_email@gmail.com"
         sender_password = "your_app_password"
         message = MIMEMultipart("alternative")
-        message["Subject"] = "HireIQ — Password Reset OTP"
+        message["Subject"] = "HireIQ - Password Reset OTP"
         message["From"] = sender_email
         message["To"] = receiver_email
         text = f"""
@@ -98,20 +102,15 @@ def change_password(email, old_password, new_password):
     reset_password(email, new_password)
     return True, "Password changed successfully"
 
-def check_email_exists(email):
-    user = get_user_by_email(email)
-    return user is not None
 
-
-def signup_user(name, email, password):
+def admin_create_user(name, email, password, role="hr"):
+    """Admin only — creates a new HR user account"""
     if not name or not email or not password:
         return False, "Please fill in all fields"
-    if check_email_exists(email):
+    if get_user_by_email(email):
         return False, "An account with this email already exists"
     if len(password) < 6:
         return False, "Password must be at least 6 characters"
-    if "@" not in email or "." not in email:
-        return False, "Please enter a valid email address"
     try:
         hashed = bcrypt.hashpw(
             password.encode('utf-8'),
@@ -120,11 +119,45 @@ def signup_user(name, email, password):
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-            (name, email, hashed)
+            "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
+            (name, email, hashed, role)
         )
         conn.commit()
         conn.close()
-        return True, "Account created successfully! Please sign in."
+        return True, f"Account created for {name}"
     except Exception as e:
-        return False, f"Signup failed: {e}"
+        return False, f"Failed to create account: {e}"
+
+
+def admin_get_all_users():
+    """Returns all users — admin only"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC"
+        )
+        users = cursor.fetchall()
+        conn.close()
+        return [dict(u) for u in users]
+    except Exception as e:
+        print(f"Get users error: {e}")
+        return []
+
+
+def admin_delete_user(user_id):
+    """Deletes a user — admin only"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        return True, "User deleted"
+    except Exception as e:
+        return False, f"Delete failed: {e}"
+
+
+def admin_reset_user_password(email, new_password):
+    """Admin resets any user's password"""
+    return reset_password(email, new_password)

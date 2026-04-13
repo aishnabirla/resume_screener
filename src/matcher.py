@@ -350,9 +350,9 @@ def calculate_final_score(tfidf, bert, skill, exp=0.5, title=0.5):
     return round((
         tfidf * 0.05 +
         bert  * 0.30 +
-        skill * 0.40 +
-        exp   * 0.15 +
-        title * 0.10
+        skill * 0.50 +
+        exp   * 0.10 +
+        title * 0.05
     ) * 100, 2)
 
 

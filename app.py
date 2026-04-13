@@ -812,8 +812,8 @@ import pandas as pd
 import re
 import os
 import tempfile
-from src.auth import login_user, logout_user, is_logged_in, get_current_user
-from src.auth import generate_otp, send_otp_email, reset_password, signup_user
+# from src.auth import login_user, logout_user, is_logged_in, get_current_user
+# from src.auth import generate_otp, send_otp_email, reset_password
 from src.parser import extract_text_from_pdf, extract_text_from_string
 from src.nlp import process_resume, process_jd
 from src.matcher import match_resume_to_jd, rank_resumes
@@ -821,6 +821,12 @@ from src.database import (save_job_description, save_resume,
                            save_evaluation, get_evaluations_by_jd,
                            get_job_description_by_id)
 from src.exporter import export_csv, export_pdf, export_excel
+# from src.auth import (login_user, logout_user,
+#                        get_current_user, generate_otp,
+#                        send_otp_email, reset_password, is_admin)
+from src.auth import (login_user, logout_user, is_logged_in,
+                       get_current_user, generate_otp,
+                       send_otp_email, reset_password, is_admin)
 
 st.set_page_config(
     page_title="HireIQ",
@@ -968,19 +974,38 @@ st.markdown("""
         margin: 2px;
     }
 
-    /* ── JD Preview Modal ── */
+    /* ── JD Formatted Display ── */
     .jd-preview-box {
         background: #f8f9fa;
         border: 1px solid #e0e0e0;
         border-radius: 10px;
-        padding: 1.2rem;
+        padding: 1.4rem 1.6rem;
         font-size: 0.88rem;
-        color: #444;
-        line-height: 1.7;
-        max-height: 300px;
+        color: #333;
+        line-height: 1.8;
+        max-height: 400px;
         overflow-y: auto;
-        white-space: pre-wrap;
         margin-top: 0.8rem;
+    }
+    .jd-section-heading {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #1a73e8;
+        margin-top: 1rem;
+        margin-bottom: 0.3rem;
+        padding-bottom: 0.2rem;
+        border-bottom: 1px solid #e8f0fe;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .jd-bullet {
+        padding: 0.15rem 0 0.15rem 1rem;
+        color: #444;
+        position: relative;
+    }
+    .jd-para {
+        padding: 0.2rem 0;
+        color: #555;
     }
 
     /* ── Result cards ── */
@@ -1063,10 +1088,124 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def show_admin_panel():
+    from src.auth import (admin_create_user, admin_get_all_users,
+                           admin_delete_user, admin_reset_user_password, is_admin)
+
+    if not is_admin():
+        st.error("Access denied. Admin only.")
+        return
+
+    user = get_current_user()
+    show_topbar(user, show_new_eval=False)
+
+    st.markdown("### Admin Panel — User Management")
+    st.markdown("---")
+
+    # ── Create New User ──
+    st.markdown("#### Create New HR User")
+    with st.form("create_user_form"):
+        new_name = st.text_input("Full Name", placeholder="e.g. Full Name")
+        new_email = st.text_input("Email Address", placeholder="email id")
+        new_password = st.text_input("Temporary Password", type="password",
+                                      placeholder="Minimum 6 characters")
+        new_role = st.selectbox("Role", ["hr", "admin"])
+        create_submitted = st.form_submit_button(
+            "Create Account", type="primary", use_container_width=True
+        )
+        if create_submitted:
+            success, message = admin_create_user(new_name, new_email,
+                                                  new_password, new_role)
+            if success:
+                st.success(message)
+            else:
+                st.error(message)
+
+    st.markdown("---")
+
+    # ── Existing Users ──
+    st.markdown("#### All Users")
+    users = admin_get_all_users()
+    if users:
+        for u in users:
+            col1, col2, col3, col4, col5 = st.columns([2, 2.5, 1, 1.5, 1])
+            with col1:
+                st.write(u['name'])
+            with col2:
+                st.write(u['email'])
+            with col3:
+                st.markdown(
+                    f"<span style='background:#e8f0fe;color:#1a73e8;"
+                    f"padding:2px 8px;border-radius:10px;font-size:0.8rem'>"
+                    f"{u['role']}</span>",
+                    unsafe_allow_html=True
+                )
+            with col4:
+                st.caption(u['created_at'][:10])
+            with col5:
+                current = get_current_user()
+                if u['email'] != current['email']:
+                    if st.button("Delete", key=f"del_{u['id']}"):
+                        admin_delete_user(u['id'])
+                        st.rerun()
+                else:
+                    st.caption("(you)")
+    else:
+        st.info("No users found")
 
 # ─────────────────────────────────────────────
 #  PROGRESS BAR
 # ─────────────────────────────────────────────
+
+def format_jd_for_display(text):
+    if not text:
+        return ""
+
+    lines = text.strip().split('\n')
+    html_lines = []
+
+    heading_keywords = [
+        "responsibilities", "requirements", "qualifications",
+        "skills", "experience", "education", "about",
+        "overview", "summary", "benefits", "nice to have",
+        "preferred", "required", "key skills", "job description",
+        "who you are", "what you'll do", "what we offer",
+        "role", "position", "duties", "profile",
+        "about the role", "about the company", "about us",
+    ]
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        line_lower = line.lower().rstrip(':').strip()
+
+        is_heading = (
+            (len(line) < 60 and line.endswith(':'))
+            or any(line_lower == kw or line_lower == kw + ':'
+                   for kw in heading_keywords)
+            or (len(line) < 50 and line.isupper())
+        )
+
+        is_bullet = line.startswith(('•', '-', '*', '●', '○', '▪', '◦'))
+
+        if is_heading:
+            html_lines.append(
+                f'<div class="jd-section-heading">{line}</div>'
+            )
+        elif is_bullet:
+            content = line.lstrip('•-*●○▪◦').strip()
+            html_lines.append(
+                f'<div class="jd-bullet">• {content}</div>'
+            )
+        else:
+            html_lines.append(
+                f'<div class="jd-para">{line}</div>'
+            )
+
+    return '\n'.join(html_lines)
+
 def show_progress_bar(current_step):
     steps = ["Upload JD", "Upload Resumes", "Evaluate"]
     pills = ""
@@ -1096,6 +1235,29 @@ def show_progress_bar(current_step):
 # ─────────────────────────────────────────────
 #  TOP BAR
 # ─────────────────────────────────────────────
+# def show_topbar(user, show_new_eval=False):
+#     col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
+#     with col1:
+#         st.markdown('<div class="topbar-brand">🔍 HireIQ</div>', unsafe_allow_html=True)
+#     with col2:
+#         st.markdown(
+#             f'<div class="topbar-user">👤 {user["name"]} &nbsp;|&nbsp; {user["email"]}</div>',
+#             unsafe_allow_html=True
+#         )
+#     with col3:
+#         if show_new_eval:
+#             if st.button("+ New Evaluation", type="primary", use_container_width=True):
+#                 st.session_state['page'] = 'dashboard'
+#                 st.session_state['wizard_step'] = 1
+#                 st.session_state['results'] = None
+#                 st.session_state['jd_text'] = None
+#                 st.session_state['jd_title'] = None
+#                 st.rerun()
+#     with col4:
+#         if st.button("Logout", use_container_width=True):
+#             logout_user()
+#             st.rerun()
+
 def show_topbar(user, show_new_eval=False):
     col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
     with col1:
@@ -1114,6 +1276,10 @@ def show_topbar(user, show_new_eval=False):
                 st.session_state['jd_text'] = None
                 st.session_state['jd_title'] = None
                 st.rerun()
+        elif user.get('role') == 'admin':
+            if st.button("Admin Panel", use_container_width=True):
+                st.session_state['page'] = 'admin'
+                st.rerun()
     with col4:
         if st.button("Logout", use_container_width=True):
             logout_user()
@@ -1128,67 +1294,38 @@ def show_login_page():
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown('<div class="brand-title">🔍 HireIQ</div>', unsafe_allow_html=True)
         st.markdown('<div class="brand-sub">AI-Powered Resume Screener</div>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        tab1, tab2, tab3 = st.tabs(["Sign In", "Sign Up", "Forgot Password"])
-
-        with tab1:
-            with st.form("login_form"):
-                email = st.text_input(
-                    "Email Address",
-                    placeholder="you@example.com"
-                )
-                password = st.text_input(
-                    "Password",
-                    type="password",
-                    placeholder="Enter your password"
-                )
-                st.markdown("<br>", unsafe_allow_html=True)
-                submitted = st.form_submit_button(
-                    "Sign In",
-                    use_container_width=True,
-                    type="primary"
-                )
-                if submitted:
-                    if email and password:
-                        success, result = login_user(email, password)
-                        if success:
-                            st.session_state.update({
-                                'logged_in': True,
-                                'user': result,
-                                'page': 'dashboard',
-                                'wizard_step': 1
-                            })
-                            st.rerun()
-                        else:
-                            st.error(result)
+        with st.form("login_form"):
+            st.markdown("**Sign in to your account**")
+            st.markdown("<br>", unsafe_allow_html=True)
+            email = st.text_input("Email Address", placeholder="you@example.com")
+            password = st.text_input("Password", type="password",
+                                     placeholder="Enter your password")
+            st.markdown("<br>", unsafe_allow_html=True)
+            submitted = st.form_submit_button(
+                "Sign In", use_container_width=True, type="primary"
+            )
+            if submitted:
+                if email and password:
+                    success, result = login_user(email, password)
+                    if success:
+                        st.session_state.update({
+                            'logged_in': True,
+                            'user': result,
+                            'page': 'dashboard',
+                            'wizard_step': 1
+                        })
+                        st.rerun()
                     else:
-                        st.warning("Please enter both email and password")
+                        st.error(result)
+                else:
+                    st.warning("Please enter both email and password")
 
-        with tab2:
-            with st.form("signup_form"):
-                new_name = st.text_input("Full Name", placeholder="e.g. Your name", key="su_name")
-                new_email = st.text_input("Email Address", placeholder="you@example.com", key="su_email")
-                new_pw = st.text_input("Password", type="password", placeholder="Minimum 6 characters", key="su_pw")
-                confirm_pw = st.text_input("Confirm Password", type="password", placeholder="Re-enter password", key="su_confirm")
-                st.markdown("<br>", unsafe_allow_html=True)
-                submitted = st.form_submit_button(
-                    "Create Account",
-                    use_container_width=True,
-                    type="primary"
-                )
-                if submitted:
-                    if new_pw != confirm_pw:
-                        st.error("Passwords do not match")
-                    else:
-                        success, message = signup_user(new_name, new_email, new_pw)
-                        if success:
-                            st.success(message)
-                            st.info("Go to Sign In tab to login")
-                        else:
-                            st.error(message)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        with tab3:
-            fp_email = st.text_input("Registered Email", key="fp_email")
+        with st.expander("Forgot Password?"):
+            fp_email = st.text_input("Enter your registered email", key="fp_email")
             if 'otp_sent' not in st.session_state:
                 st.session_state['otp_sent'] = False
             if st.button("Send OTP", use_container_width=True, key="otp_btn"):
@@ -1196,10 +1333,14 @@ def show_login_page():
                     otp = generate_otp()
                     sent = send_otp_email(fp_email, otp)
                     if sent:
-                        st.session_state.update({'otp_sent': True, 'generated_otp': otp, 'fp_email_stored': fp_email})
+                        st.session_state.update({
+                            'otp_sent': True,
+                            'generated_otp': otp,
+                            'fp_email_stored': fp_email
+                        })
                         st.success("OTP sent!")
                     else:
-                        st.info("Email not configured. Contact admin to reset password.")
+                        st.info("Email not configured. Contact your admin to reset password.")
                 else:
                     st.warning("Please enter your email")
             if st.session_state.get('otp_sent'):
@@ -1216,9 +1357,6 @@ def show_login_page():
                             st.error("Passwords do not match or too short")
                     else:
                         st.error("Incorrect OTP")
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
 
 # ─────────────────────────────────────────────
 #  DASHBOARD
@@ -1292,7 +1430,7 @@ def show_step1():
         if st.button("👁 View Job Description"):
             st.session_state['show_jd_preview'] = not st.session_state.get('show_jd_preview', False)
         if st.session_state.get('show_jd_preview', False):
-            st.markdown(f'<div class="jd-preview-box">{jd_text}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="jd-preview-box">{format_jd_for_display(jd_text)}</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
@@ -1586,32 +1724,46 @@ def show_results_page():
 # ─────────────────────────────────────────────
 #  MAIN
 # ─────────────────────────────────────────────
+# def main():
+#     # FIX: initialise ALL session state keys upfront so no key is ever missing
+#     # mid-render, which was causing session flicker on first load
+#     defaults = {
+#         'logged_in': False,
+#         'page': 'login',
+#         'user': None,
+#         'wizard_step': 1,
+#         'jd_text': None,
+#         'jd_title': None,
+#         'results': None,
+#         'show_jd_preview': False,
+#         'show_jd_results': False,
+#         'otp_sent': False,
+#     }
+#     for key, val in defaults.items():
+#         if key not in st.session_state:
+#             st.session_state[key] = val
+
+#     if not st.session_state['logged_in']:
+#         show_login_page()
+#     elif st.session_state['page'] == 'results':
+#         show_results_page()
+#     else:
+#         show_dashboard()
+
 def main():
-    # FIX: initialise ALL session state keys upfront so no key is ever missing
-    # mid-render, which was causing session flicker on first load
-    defaults = {
-        'logged_in': False,
-        'page': 'login',
-        'user': None,
-        'wizard_step': 1,
-        'jd_text': None,
-        'jd_title': None,
-        'results': None,
-        'show_jd_preview': False,
-        'show_jd_results': False,
-        'otp_sent': False,
-    }
-    for key, val in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = val
+    if 'logged_in' not in st.session_state:
+        st.session_state['logged_in'] = False
+    if 'page' not in st.session_state:
+        st.session_state['page'] = 'login'
 
     if not st.session_state['logged_in']:
         show_login_page()
-    elif st.session_state['page'] == 'results':
+    elif st.session_state.get('page') == 'results':
         show_results_page()
+    elif st.session_state.get('page') == 'admin':
+        show_admin_panel()
     else:
         show_dashboard()
-
 
 if __name__ == "__main__":
     main()
