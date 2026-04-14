@@ -1088,68 +1088,193 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# def show_admin_panel():
+#     from src.auth import (admin_create_user, admin_get_all_users,
+#                            admin_delete_user, admin_reset_user_password, is_admin)
+
+#     if not is_admin():
+#         st.error("Access denied. Admin only.")
+#         return
+
+#     user = get_current_user()
+#     show_topbar(user, show_new_eval=False)
+
+#     st.markdown("### Admin Panel — User Management")
+#     st.markdown("---")
+
+#     # ── Create New User ──
+#     st.markdown("#### Create New HR User")
+#     with st.form("create_user_form"):
+#         new_name = st.text_input("Full Name", placeholder="e.g. Full Name")
+#         new_email = st.text_input("Email Address", placeholder="email id")
+#         new_password = st.text_input("Temporary Password", type="password",
+#                                       placeholder="Minimum 6 characters")
+#         new_role = st.selectbox("Role", ["hr", "admin"])
+#         create_submitted = st.form_submit_button(
+#             "Create Account", type="primary", use_container_width=True
+#         )
+#         if create_submitted:
+#             success, message = admin_create_user(new_name, new_email,
+#                                                   new_password, new_role)
+#             if success:
+#                 st.success(message)
+#             else:
+#                 st.error(message)
+
+#     st.markdown("---")
+
+#     # ── Existing Users ──
+#     st.markdown("#### All Users")
+#     users = admin_get_all_users()
+#     if users:
+#         for u in users:
+#             col1, col2, col3, col4, col5 = st.columns([2, 2.5, 1, 1.5, 1])
+#             with col1:
+#                 st.write(u['name'])
+#             with col2:
+#                 st.write(u['email'])
+#             with col3:
+#                 st.markdown(
+#                     f"<span style='background:#e8f0fe;color:#1a73e8;"
+#                     f"padding:2px 8px;border-radius:10px;font-size:0.8rem'>"
+#                     f"{u['role']}</span>",
+#                     unsafe_allow_html=True
+#                 )
+#             with col4:
+#                 st.caption(u['created_at'][:10])
+#             with col5:
+#                 current = get_current_user()
+#                 if u['email'] != current['email']:
+#                     if st.button("Delete", key=f"del_{u['id']}"):
+#                         admin_delete_user(u['id'])
+#                         st.rerun()
+#                 else:
+#                     st.caption("(you)")
+#     else:
+#         st.info("No users found")
+
+
 def show_admin_panel():
-    from src.auth import (admin_create_user, admin_get_all_users,
-                           admin_delete_user, admin_reset_user_password, is_admin)
+    from src.auth import (
+        admin_create_user,
+        admin_get_all_users,
+        admin_delete_user,
+        admin_reset_user_password,
+        is_admin
+    )
 
     if not is_admin():
         st.error("Access denied. Admin only.")
         return
 
     user = get_current_user()
-    show_topbar(user, show_new_eval=False)
 
+    # ─────────────────────────────────────────────
+    # TOP BAR (CUSTOM FOR ADMIN PANEL)
+    # ─────────────────────────────────────────────
+    col1, col2, col3 = st.columns([3, 2, 2])
+
+    with col1:
+        st.markdown('<div class="topbar-brand">🔍 HireIQ</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(
+            f'<div class="topbar-user">👤 {user["name"]} | {user["email"]}</div>',
+            unsafe_allow_html=True
+        )
+
+    with col3:
+        btn1, btn2 = st.columns(2)
+
+        with btn1:
+            if st.button("← Dashboard", use_container_width=True):
+                st.session_state['page'] = 'dashboard'
+                st.rerun()
+
+        with btn2:
+            if st.button("Logout", use_container_width=True):
+                logout_user()
+                st.rerun()
+
+    # ─────────────────────────────────────────────
+    # PAGE TITLE
+    # ─────────────────────────────────────────────
     st.markdown("### Admin Panel — User Management")
     st.markdown("---")
 
-    # ── Create New User ──
+    # ─────────────────────────────────────────────
+    # CREATE USER
+    # ─────────────────────────────────────────────
     st.markdown("#### Create New HR User")
+
     with st.form("create_user_form"):
-        new_name = st.text_input("Full Name", placeholder="e.g. Full Name")
-        new_email = st.text_input("Email Address", placeholder="email id")
-        new_password = st.text_input("Temporary Password", type="password",
-                                      placeholder="Minimum 6 characters")
-        new_role = st.selectbox("Role", ["hr", "admin"])
-        create_submitted = st.form_submit_button(
-            "Create Account", type="primary", use_container_width=True
+        new_name = st.text_input("Full Name", placeholder="Your full name")
+        new_email = st.text_input("Email Address", placeholder="email@example.com")
+        new_password = st.text_input(
+            "Temporary Password",
+            type="password",
+            placeholder="Minimum 6 characters"
         )
+        new_role = st.selectbox("Role", ["hr", "admin"])
+
+        create_submitted = st.form_submit_button(
+            "Create Account",
+            type="primary",
+            use_container_width=True
+        )
+
         if create_submitted:
-            success, message = admin_create_user(new_name, new_email,
-                                                  new_password, new_role)
-            if success:
-                st.success(message)
+            if not new_name or not new_email or not new_password:
+                st.warning("Please fill all fields")
             else:
-                st.error(message)
+                success, message = admin_create_user(
+                    new_name, new_email, new_password, new_role
+                )
+                if success:
+                    st.success(message)
+                else:
+                    st.error(message)
 
     st.markdown("---")
 
-    # ── Existing Users ──
-    st.markdown("#### All Users")
+    # ─────────────────────────────────────────────
+    # USERS LIST
+    # ─────────────────────────────────────────────
+    st.markdown("#### 👥 All Users")
+
     users = admin_get_all_users()
+
     if users:
         for u in users:
             col1, col2, col3, col4, col5 = st.columns([2, 2.5, 1, 1.5, 1])
+
             with col1:
-                st.write(u['name'])
+                st.write(f"**{u['name']}**")
+
             with col2:
                 st.write(u['email'])
+
             with col3:
                 st.markdown(
                     f"<span style='background:#e8f0fe;color:#1a73e8;"
-                    f"padding:2px 8px;border-radius:10px;font-size:0.8rem'>"
+                    f"padding:4px 10px;border-radius:12px;font-size:0.75rem'>"
                     f"{u['role']}</span>",
                     unsafe_allow_html=True
                 )
+
             with col4:
                 st.caption(u['created_at'][:10])
+
             with col5:
                 current = get_current_user()
+
                 if u['email'] != current['email']:
-                    if st.button("Delete", key=f"del_{u['id']}"):
+                    if st.button("🗑 Delete", key=f"del_{u['id']}"):
                         admin_delete_user(u['id'])
                         st.rerun()
                 else:
-                    st.caption("(you)")
+                    st.caption("You")
+
     else:
         st.info("No users found")
 
@@ -1520,12 +1645,16 @@ def show_step3():
         jd_text = st.session_state['jd_text']
         jd_title = st.session_state['jd_title']
         progress_bar = st.progress(0)
+        progress_text = st.empty()
         status = st.empty()
         jd_id = save_job_description(user['id'], jd_title, jd_text)
         results = []
 
         for i, resume_data in enumerate(resume_files_data):
-            status.info(f"⏳ Evaluating {resume_data['name']}... ({i+1}/{len(resume_files_data)})")
+            status.info(
+                f"⏳ Evaluating **{resume_data['name']}**  \n"
+                f"📄 {i+1} of {len(resume_files_data)} resumes"
+            )
             with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
                 tmp.write(resume_data['data'])
                 tmp_path = tmp.name
@@ -1540,18 +1669,39 @@ def show_step3():
             save_evaluation(resume_id, jd_id, match_result['final_score'],
                             match_result['matched_skills'], match_result['missing_skills'],
                             resume_info['education'], resume_info['experience'])
+            # results.append({
+            #     "name": resume_info['name'],
+            #     "email": resume_info['email'] or "Not provided",
+            #     "file_name": resume_data['name'],
+            #     "final_score": match_result['final_score'],
+            #     "skill_score": match_result['skill_score'],
+            #     "matched_skills": match_result['matched_skills'] or [],
+            #     "missing_skills": match_result['missing_skills'] or [],
+            #     "education": resume_info['education'] or "Not found",
+            #     "experience": resume_info['experience'] or "Not found"
+            # })
             results.append({
-                "name": resume_info['name'],
-                "email": resume_info['email'] or "Not provided",
-                "file_name": resume_data['name'],
-                "final_score": match_result['final_score'],
-                "skill_score": match_result['skill_score'],
-                "matched_skills": match_result['matched_skills'] or [],
-                "missing_skills": match_result['missing_skills'] or [],
-                "education": resume_info['education'] or "Not found",
-                "experience": resume_info['experience'] or "Not found"
-            })
-            progress_bar.progress((i + 1) / len(resume_files_data))
+            "name": resume_info['name'],
+            "email": resume_info['email'] or "Not provided",
+            "file_name": resume_data['name'],
+
+            "final_score": match_result['final_score'],
+            "tfidf_score": match_result.get('tfidf_score', 0),
+            "bert_score": match_result.get('bert_score', 0),
+            "skill_score": match_result.get('skill_score', 0),
+            "experience_score": match_result.get('experience_score', 0),
+            "title_score": match_result.get('title_score', 0),
+
+            "matched_skills": match_result.get('matched_skills', []),
+            "missing_skills": match_result.get('missing_skills', []),
+
+            "education": resume_info['education'] or "Not found",
+            "experience": resume_info['experience'] or "Not found"
+        })
+            progress = int(((i + 1) / len(resume_files_data)) * 100)
+
+            progress_bar.progress(progress)
+            progress_text.markdown(f"**Progress: {progress}%**")
 
         results.sort(key=lambda x: x['final_score'], reverse=True)
 
@@ -1614,7 +1764,7 @@ def show_results_page():
 
     if st.session_state.get('show_jd_results', False):
         st.markdown(
-            f'<div class="jd-preview-box">{st.session_state["jd_text"]}</div>',
+            f'<div class="jd-preview-box">{format_jd_for_display(st.session_state["jd_text"])}</div>',
             unsafe_allow_html=True
         )
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1677,14 +1827,24 @@ def show_results_page():
 
     # ── Table View ──
     else:
+        # df = pd.DataFrame([{
+        #     "Rank": i + 1,
+        #     "Name": r['name'],
+        #     "Email": r['email'],
+        #     "Final Score (%)": r['final_score'],
+        #     "Skill Match (%)": r['skill_score'],
+        #     "Matched Skills": ", ".join(r['matched_skills']) if isinstance(r['matched_skills'], list) else str(r['matched_skills']),
+        #     "Missing Skills": ", ".join(r['missing_skills']) if isinstance(r['missing_skills'], list) else str(r['missing_skills']),
+        # } for i, r in enumerate(filtered)])
         df = pd.DataFrame([{
-            "Rank": i + 1,
-            "Name": r['name'],
-            "Email": r['email'],
-            "Final Score (%)": r['final_score'],
-            "Skill Match (%)": r['skill_score'],
-            "Matched Skills": ", ".join(r['matched_skills']) if isinstance(r['matched_skills'], list) else str(r['matched_skills']),
-            "Missing Skills": ", ".join(r['missing_skills']) if isinstance(r['missing_skills'], list) else str(r['missing_skills']),
+            "Rank":           i + 1,
+            "Name":           r['name'],
+            "Final Score":    f"{r['final_score']}%",
+            "Skill Score":    f"{r['skill_score']}%",
+            "BERT Score":     f"{r['bert_score']}%",
+            "Exp Score":      f"{r.get('experience_score', 'N/A')}%",
+            "Title Score":    f"{r.get('title_score', 'N/A')}%",
+            "Email":          r['email'],
         } for i, r in enumerate(filtered)])
         st.dataframe(df, use_container_width=True, hide_index=True)
 

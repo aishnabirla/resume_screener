@@ -154,7 +154,10 @@ SECTION_HEADERS = {
     "nice to have", "required", "preferred",
     "responsibilities", "qualifications",
 }
-
+RESUME_SECTION_WORDS = {
+    "summary", "professional summary", "career objective",
+    "profile", "about me", "overview", "objective",
+}
 # ─────────────────────────────────────────────
 # KNOWN REAL SKILLS WHITELIST
 # Multi-word phrases that look like noise but
@@ -292,6 +295,10 @@ def extract_candidate_name(text):
         if re.search(r'\d{5,}', line):
             continue
         if line.startswith('http') or 'linkedin' in line_lower:
+            continue
+        if line_lower in RESUME_SECTION_WORDS:
+            continue
+        if any(line_lower.startswith(sw) for sw in RESUME_SECTION_WORDS):
             continue
 
         # Handle "LABEL: Value" format e.g. "NAME: Singam Vivek Kumar"
