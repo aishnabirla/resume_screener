@@ -824,6 +824,7 @@ from src.auth import (login_user, logout_user, is_logged_in,
                        send_otp_email, reset_password, is_admin)
 from src.matcher import is_valid_jd
 from src.matcher import is_valid_resume
+from src.nlp import JOB_TITLE_WORDS
 st.set_page_config(
     page_title="HireIQ",
     page_icon="🔍",
@@ -1630,9 +1631,34 @@ def show_step3():
             resume_text = extract_text_from_pdf(tmp_path)
             os.unlink(tmp_path)
             resume_info = process_resume(resume_text, jd_text)
-            if resume_info['name'] in ("Candidate", "Unknown"):
-                name_from_file = resume_data['name'].replace('.pdf', '').replace('_', ' ').replace('-', ' ').title()
-                resume_info['name'] = name_from_file
+
+            # Use filename fallback if name looks wrong
+            bad_names = {
+                "Candidate", "Unknown", "Work Experience", "Summary Professional",
+                "Summary", "Professional", "Objective", "Profile", "Overview",
+                "Specializing In", "Data Engineer", "Software Engineer",
+            }
+            if (resume_info['name'] in bad_names or
+                    resume_info['name'].lower() in {n.lower() for n in bad_names}):
+                raw = resume_data['name'].replace('.pdf', '')
+                # Clean common resume filename patterns
+                # e.g. MOHAMMED_FARIDH_Data_Engineer → Mohammed Faridh
+                parts = re.split(r'[_\-\s]+', raw)
+                # Keep only parts that look like name words (alpha, not job titles)
+                name_parts = []
+                for p in parts:
+                    p_clean = p.strip()
+                    if (p_clean and
+                            p_clean.replace("'", "").isalpha() and
+                            p_clean.lower() not in JOB_TITLE_WORDS and
+                            len(p_clean) > 1):
+                        name_parts.append(p_clean.title())
+                    else:
+                        break  # stop at first non-name word
+                if name_parts:
+                    resume_info['name'] = ' '.join(name_parts[:3])
+                else:
+                    resume_info['name'] = raw.title()[:30]
             resume_id = save_resume(jd_id, resume_info['name'], resume_info['email'], resume_data['name'], resume_text)
             match_result = match_resume_to_jd(jd_text, resume_text)
             save_evaluation(resume_id, jd_id, match_result['final_score'],

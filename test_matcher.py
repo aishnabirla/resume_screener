@@ -31,19 +31,11 @@ for f in files:
 
 
 
-
-# from src.parser import extract_text_from_pdf
 # from src.nlp import _collapse_spaced_name
-
-# files = [
-#     'data/resumes/MOHAMMED FARIDH_Data_Engineer.pdf',
-#     'data/resumes/Bharath Servicenow HRSD.pdf',
-# ]
-# for f in files:
-#     text = extract_text_from_pdf(f)
-#     text_proc = _collapse_spaced_name(text)
-#     print('FILE:', f.split('/')[-1])
-#     for i, l in enumerate(text_proc.split(chr(10))[:10]):
-#         print(f'  {i}: {repr(l)}')
-#     print()
-
+# text = 'MOHAMMEDFARIDH AI DATA ENGINEER'
+# proc = _collapse_spaced_name(text)
+# print(repr(proc))
+# import re
+# word = 'Mohammedfaridh'
+# parts = re.findall(r'[A-Z][a-z]+', word)
+# print('Parts:', parts)
