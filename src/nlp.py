@@ -10,13 +10,6 @@ nltk.download('punkt', quiet=True)
 
 # Load spaCy model (already installed via requirements.txt)
 nlp = spacy.load("en_core_web_sm")
-import subprocess, sys
-try:
-    import spacy
-    spacy.load("en_core_web_sm")
-except OSError:
-    subprocess.run([sys.executable, "-m", "spacy",
-                    "download", "en_core_web_sm"], check=True)
 
 # ─────────────────────────────────────────────
 # SKILLS DATABASE

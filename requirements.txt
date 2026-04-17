@@ -8,3 +8,4 @@ pandas
 fpdf2
 openpyxl
 sentence-transformers
+en-core-web-sm==3.7.1
