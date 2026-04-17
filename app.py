@@ -1954,6 +1954,11 @@ def show_results_page():
 #  MAIN
 # ─────────────────────────────────────────────
 def main():
+    # Auto-create database if it does not exist
+    import os
+    if not os.path.exists('resume_screener.db'):
+        import subprocess
+        subprocess.run(['python', 'setup_db.py'], check=True)
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
     if 'page' not in st.session_state:

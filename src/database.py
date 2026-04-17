@@ -2,7 +2,7 @@ import sqlite3
 import os
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'resume_screener.db')
-
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'resume_screener.db')
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)

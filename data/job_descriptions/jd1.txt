@@ -1,0 +1,41 @@
+Job Description: Senior Data Engineer
+Experience Level: 8-14 years
+Location: Bangalore/ Hyderabad
+Key Skills: Python (Strong), Advanced SQL, Airflow/Spark/Kafka, Cloud (AWS/Azure/GCP),
+Modern DW (Snowflake/Databricks), Data Pipeline ETL/ELT
+Key Responsibilities:
+• Design, develop, and maintain scalable data pipelines using modern orchestration frameworks
+(Apache Airflow, Apache Spark, Kafka)
+• Build data ingestion solutions from diverse sources including ERP systems (SAP, Oracle), CRM
+platforms (Salesforce, Workday), and cloud data warehouses
+• Implement data quality frameworks, validation rules, and monitoring to ensure high-quality data
+across all applications
+• Optimize data processing workflows for performance, reliability, and cost-efficiency in cloud-native
+environments
+• Collaborate with BI Engineers and Data Modelers to ensure seamless data flow from source
+systems to analytical dashboards
+• Write clean, reusable, and well-tested code following software engineering best practices (code
+reviews, unit testing, CI/CD)
+Required Qualifications
+• 8-12 years of proven experience in building production-grade data pipelines and ETL/ELT
+solutions
+• Strong proficiency in Python for data engineering (pandas, PySpark, SQLAlchemy, data
+processing libraries)
+• Advanced SQL skills including complex joins, window functions, query optimization, and
+performance tuning
+• Hands-on experience with cloud platforms (AWS, Azure, or GCP) and cloud-native data services
+• Familiarity with orchestration frameworks such as Apache Airflow, Apache Spark, Kafka, or similar
+tools
+• Experience with modern data warehouses (Snowflake, Databricks, BigQuery, Redshift) including
+data modeling and optimization
+• Knowledge of ERP/CRM systems integration (SAP, Oracle, Salesforce, Workday)
+• Strong understanding of data quality principles, testing frameworks, and validation methodologies
+• Experience in leveraging or critically thinking about how to integrate AI into work processes
+
+Nice-to-Have Qualifications
+• Experience with AI-powered productivity tools (Cursor, Windsurf, Claude, GitHub Copilot)
+• Hands-on Java experience and understanding of enterprise application design patterns
+• Experience working with ServiceNow platform or similar enterprise workflow platforms
+• Knowledge of real-time streaming architectures (Kafka Streams, Flink)
+• Experience with containerization (Docker, Kubernetes) and modern CI/CD practices
+• Familiarity with AI/ML pipeline integration, feature engineering, and model serving infrastructure
