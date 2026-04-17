@@ -1,18 +1,21 @@
 import spacy
 import re
+import subprocess
+import sys
 import nltk
 from nltk.corpus import stopwords
 
 nltk.download('stopwords', quiet=True)
 nltk.download('punkt', quiet=True)
 
-# Load spaCy model — works both locally and on Streamlit Cloud
+# Auto-download spaCy model if not present
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
-    # Fallback for environments where model isn't installed as package
-    from spacy.cli import download
-    download("en_core_web_sm")
+    subprocess.run(
+        [sys.executable, "-m", "spacy", "download", "en_core_web_sm"],
+        check=True
+    )
     nlp = spacy.load("en_core_web_sm")
 
 # ─────────────────────────────────────────────
