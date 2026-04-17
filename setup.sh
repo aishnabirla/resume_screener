@@ -1,3 +1,2 @@
-pip install spacy
-python -m spacy download en_core_web_sm
-python -m nltk.downloader punkt stopwords
+mkdir -p ~/.nltk_data
+python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt'); nltk.download('punkt_tab')"
