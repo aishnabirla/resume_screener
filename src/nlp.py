@@ -336,50 +336,46 @@ def extract_candidate_name(text):
         words = cleaned.split()
 
         # ── Handle collapsed single-word full name like MOHAMMEDFARIDH ──
-        # If it is one long word, all alpha, no spaces — try splitting at uppercase
         if len(words) == 1 and len(words[0]) > 6 and words[0].replace("'","").isalpha():
             word = words[0]
-            # Find uppercase boundaries e.g. MohammedFaridh
-            parts = re.findall(r'[A-Z][a-z]+', word.title())
+
+            # Try 1: CamelCase boundary split (works for MohammedFaridh)
+            parts = re.findall(r'[A-Z][a-z]+', word)
             if 2 <= len(parts) <= 3 and all(p.replace("'","").isalpha() for p in parts):
                 candidate = ' '.join(parts)
                 if _is_valid_name(candidate.split()):
                     return candidate
 
-        # Direct 2-3 word name check
-        if _is_valid_name(words):
-            return cleaned
+            # Try 2: title() then boundary split (works after normalisation)
+            titled = word.title()
+            parts = re.findall(r'[A-Z][a-z]+', titled)
+            if 2 <= len(parts) <= 3 and all(p.replace("'","").isalpha() for p in parts):
+                candidate = ' '.join(parts)
+                if _is_valid_name(candidate.split()):
+                    return candidate
 
-        # Strip trailing title words
-        for trim in range(1, min(5, len(words))):
-            candidate = words[:len(words) - trim]
-            if _is_valid_name(candidate):
-                return ' '.join(candidate)
+            # Try 3: Split long word at midpoint if all alpha and long enough
+            # e.g. MOHAMMEDFARIDH (14 chars) → try all split points
+            if len(word) >= 8:
+                best = None
+                for i in range(3, len(word) - 3):
+                    part1 = word[:i].title()
+                    part2 = word[i:].title()
+                    if (part1.replace("'","").isalpha() and
+                            part2.replace("'","").isalpha() and
+                            len(part1) >= 3 and len(part2) >= 3 and
+                            part1.lower() not in JOB_TITLE_WORDS and
+                            part2.lower() not in JOB_TITLE_WORDS):
+                        # Prefer splits that give roughly equal halves
+                        if best is None or abs(len(part1)-len(part2)) < abs(len(best[0])-len(best[1])):
+                            best = (part1, part2)
+                if best:
+                    candidate = f"{best[0]} {best[1]}"
+                    if _is_valid_name(candidate.split()):
+                        return candidate
 
-        # Try first 2-3 words of long lines
-        if len(words) > 3:
-            if _is_valid_name(words[:3]):
-                return ' '.join(words[:3])
-            if _is_valid_name(words[:2]):
-                return ' '.join(words[:2])
-
-    # spaCy PERSON fallback — only first 300 chars
-    doc = nlp(text_proc[:300])
-    for ent in doc.ents:
-        if ent.label_ == "PERSON":
-            words = ent.text.strip().split()
-            if _is_valid_name(words):
-                return ent.text.strip().title()
-
-    # ALL CAPS two-word regex fallback
-    for line in lines[:10]:
-        cleaned = re.sub(r'[^\w\s]', ' ', line).strip()
-        if re.match(r'^[A-Z]{2,}(?:\s[A-Z]{2,}){1,2}$', cleaned):
-            title = cleaned.title()
-            if _is_valid_name(title.split()):
-                return title
-
-    return "Candidate"
+            # Cannot resolve single word — return Candidate so filename fallback runs
+            return "Candidate"
 
 # ─────────────────────────────────────────────
 # EDUCATION EXTRACTION — domain agnostic
@@ -527,8 +523,6 @@ def extract_experience(text):
 
 # ─────────────────────────────────────────────
 # SKILL EXTRACTION — domain agnostic
-# Layer 1: JD-driven (primary, any domain)
-# Layer 2: SKILLS_DATABASE (fallback)
 # ─────────────────────────────────────────────
 def extract_skills(text, jd_text=None):
     text_lower = text.lower()

@@ -1638,13 +1638,12 @@ def show_step3():
                 "Summary", "Professional", "Objective", "Profile", "Overview",
                 "Specializing In", "Data Engineer", "Software Engineer",
             }
-            if (resume_info['name'] in bad_names or
-                    resume_info['name'].lower() in {n.lower() for n in bad_names}):
+            name = resume_info.get('name') or ""
+
+            if (name in bad_names or
+                name.lower() in {n.lower() for n in bad_names}):
                 raw = resume_data['name'].replace('.pdf', '')
-                # Clean common resume filename patterns
-                # e.g. MOHAMMED_FARIDH_Data_Engineer → Mohammed Faridh
                 parts = re.split(r'[_\-\s]+', raw)
-                # Keep only parts that look like name words (alpha, not job titles)
                 name_parts = []
                 for p in parts:
                     p_clean = p.strip()
@@ -1664,39 +1663,7 @@ def show_step3():
             save_evaluation(resume_id, jd_id, match_result['final_score'],
                             match_result['matched_skills'], match_result['missing_skills'],
                             resume_info['education'], resume_info['experience'])
-            # results.append({
-            #     "name": resume_info['name'],
-            #     "email": resume_info['email'] or "Not provided",
-            #     "file_name": resume_data['name'],
-            #     "final_score": match_result['final_score'],
-            #     "skill_score": match_result['skill_score'],
-            #     "matched_skills": match_result['matched_skills'] or [],
-            #     "missing_skills": match_result['missing_skills'] or [],
-            #     "education": resume_info['education'] or "Not found",
-            #     "experience": resume_info['experience'] or "Not found"
-            # })
-        #     results.append({
-        #     "name": resume_info['name'],
-        #     "email": resume_info['email'] or "Not provided",
-        #     "file_name": resume_data['name'],
 
-        #     "final_score": match_result['final_score'],
-        #     "tfidf_score": match_result.get('tfidf_score', 0),
-        #     "bert_score": match_result.get('bert_score', 0),
-        #     "skill_score": match_result.get('skill_score', 0),
-        #     "experience_score": match_result.get('experience_score', 0),
-        #     "title_score": match_result.get('title_score', 0),
-
-        #     "matched_skills": match_result.get('matched_skills', []),
-        #     "missing_skills": match_result.get('missing_skills', []),
-
-        #     "education": resume_info['education'] or "Not found",
-        #     "experience": resume_info['experience'] or "Not found"
-        # })
-# ─────────────────────────────────────────────
-# CHANGE 1 — In show_step3()
-# ─────────────────────────────────────────────
- 
             results.append({
                 "name":             resume_info['name'],
                 "email":            resume_info['email'] or "Not provided",
@@ -1754,10 +1721,6 @@ def show_step3():
         if st.button("← Back", use_container_width=True):
             st.session_state['wizard_step'] = 2
             st.rerun()
-
-# ─────────────────────────────────────────────
-# CHANGE 2 — Add this helper function in app.py
-# ─────────────────────────────────────────────
  
 def generate_score_reason(c):
     """

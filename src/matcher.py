@@ -151,7 +151,6 @@ def same_family(s1, s2):
             return True
     return False
 
-
 # ---------------------------
 # SKILL MATCH (SELF-LEARNING)
 # ---------------------------
@@ -184,8 +183,6 @@ def skills_match_score(skill1, skill2):
         return 0.5
 
     return 0.0
-
-
 # ---------------------------
 # SKILL WEIGHTING
 # ---------------------------
